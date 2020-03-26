@@ -42,8 +42,9 @@ function App() {
         photo: '',
         email: '',
         password: '',
-        isValid : true,
-        error: ''
+        isValid : false,
+        error: '',
+        existingUser: false,
       }
       setUser(signedOutUser);
     })
@@ -54,7 +55,11 @@ function App() {
 
   const is_valid_email = email => email.length < 256 && /^[^@]+@[^@]{2,}\.[^@]{2,}$/.test(email); 
   const hasNumber = input => /\d/.test(input);
-
+  const switchForm = event =>{
+      const createdUser ={...user};
+      createdUser.existingUser = event.target.checked;
+      setUser(createdUser);
+  }
   const handleChange = event =>{
     const newUserInfo = {
       ...user
@@ -90,12 +95,31 @@ function App() {
         setUser(createdUser);
       })
     }
-    else{
-      console.log('Form is not valid',user);
-    }
+    
     event.preventDefault();
     event.target.reset();
   }
+    const signInUser = event => {
+      if(user.isValid){
+        firebase.auth().signInWithEmailAndPassword(user.email, user.password)
+        .then(res => {
+          console.log(res);
+          const createdUser = {...user};
+          createdUser.isSignedIn = true;
+          createdUser.error = '';
+          setUser(createdUser);
+        })
+        .catch(error => {
+          console.log(error.message);
+          const createdUser = {...user};
+          createdUser.isSignedIn = false;
+          createdUser.error = error.message;
+          setUser(createdUser);
+        })
+      }
+      event.preventDefault();
+      event.target.reset();
+    }
 
   return (
     <div className="App">
@@ -111,7 +135,16 @@ function App() {
         </div>
       }
       <h1>Our own Authentication</h1>
-      <form onSubmit={createAccount}>
+      <input type="checkbox" name="switchForm" onChange={switchForm} id="switchForm"/>
+      <label htmlFor="switchForm"> Returning User </label>
+      <form style={{display:user.existingUser ? 'block': 'none'}} onSubmit={signInUser}>
+        <input type="text" onBlur={handleChange} name='email' placeholder='Your email' required/>
+        <br/>
+        <input type="password" onBlur={handleChange} name='password' placeholder='Your Password' required/>
+        <br/>
+        <input type="submit" value="SignIn"/>
+      </form>
+      <form style={{display:user.existingUser ? 'none': 'block'}} onSubmit={createAccount}>
         <input type="text" onBlur={handleChange} name='name' placeholder='Your Name' required/>
         <br/>
         <input type="text" onBlur={handleChange} name='email' placeholder='Your email' required/>
